@@ -1,108 +1,190 @@
-//write the tests in here
-const ArticlesService = require('../src/articles-service'); //require service object
+/* (file containing tests for all ArticlesService methods.)
+This file mimics the code for the main.blogful.js to give us a testing environment.
+We dont want this code mutating our ACTUAL database, so we will link the knex inst's
+"connection" to a knex-practice-TEST database with a clone of our blogful_articles table inside.   */
+
+require('dotenv').config(); 
 const knex = require('knex');
+ArticlesService = require('../src/articles-service');
 
-describe('MasterTestSuite: ArticlesService Object', ()=> {
+const iknex = knex(
+  {
+    client: 'pg',
+    connection: process.env.TEST_DB_URL,
+  }
+)
 
-  //create knexTest instance and link to test database knex-practice-TEST
-  let iknexTest;
-  let articlesTest = [
-    {
-     id: 1,
-     date_published: new Date('2029-01-22T16:28:32.615Z'),
-      title: 'First test post!',
-      content: 'bllllllllllllaaaaaaaaaaaahhhhh blaahh blaaahhh'
-    },
-    {
-      id: 2,
-      date_published: new Date('2029-01-22T16:28:32.615Z'),
-      title: 'Second test post!',
-      content: 'zzzzzzzz zzzzzz zzzzzzz zzzzzzzzzzzzzz'
-    },
-    {
-      id: 3,
-      date_published: new Date('2029-01-22T16:28:32.615Z'),
-      title: 'Third test post!',
-      content: 'wowowowowowowowowow wowooow wowoow'
-    },
-  ]
-
-
-
-  before( ()=> {
-
-    iknexTest = knex(
-      {
-        client: 'pg',
-        connection: process.env.TEST_DB_URL,
-      }
-    )
-
-  });
-
-  /*before ANY tests begin, clean up the accumulated mess (left over/ inserted data) of last run. 
-  This does not clean up after each individual test since individual tests will runn one after another 
-  without stopping. This before() only happens at the begining once before ANY tests begin and 
-  does not clean up again after the first test has started, so the second test will deal with 
-  the first one's mess and the third will deal with the 1st and second's mess and so on. 
-  This is why we need a cleanup crew "truncate()" inside of an afterEach() block */
-  before( ()=> {
-    iknexTest('blogful_articles').truncate();
-  });
-
-  //following each individual test, a clean up of the data in the table will occur.
-  afterEach( ()=> {
-    iknexTest('blogful_articles').truncate();
-  })
+const testArticles = [
+  { id: 1,
+    title: 'Sonic Gems, a lost trearure',
+    date_published: new Date('2029-01-22T16:28:32.615Z'),
+    content: 'ssssssooooonnnnnnniiiiccc iiissss ssoooooo cooooollll' },
+  { id: 2,
+    title: 'Ice Caverns Spelunking',
+    date_published: new Date('2029-01-22T16:28:32.615Z'),
+    content: 'gogogogogog gogogo gogogogo gogogog ogogog ogogg ogogoggogogg' },
+  { id: 3,
+    title: 'Snowy Peaks of Sweden',
+    date_published: new Date('2029-01-22T16:28:32.615Z'),
+    content: 'yuuuuuuuuuuuuum tum yum yum yumy uy muymuymuymy uy yuymyumuymuy uym' },
+  { id: 4,
+    title: 'Fishing with Hot Cocoa',
+    date_published: new Date('2029-01-22T16:28:32.615Z'),
+    content: 'Snowmen finshishihsidnf nsiduhf  sndnfundsi hnisdubnsiudfis' },
+  { id: 5,
+    title: 'Emerald Coast',
+    date_published: new Date('2029-01-22T16:28:32.615Z'),
+    content: 'beachchyyy getawayyyy sdaf;lkj loooooooooooooooooooooookkkkk tttttrreeaaassuurreee' }
+]
 
 
-  //destroy database connection after tests finish so it doesnt hang.   ...(This is because we have an open database connection and the Node process thinks the script will want to stay running whilst the connection is open!)
-  after( ()=> {
-    iknexTest.destroy();
-  });
 
+/*************************************************************** end of setup */
 
-//------------------------------------------------------------------Tests BEGIN
+describe('MASTER_TestSuite: ArticlesService', ()=> {
 
-/************** TestSuite#1  Start ***********/
-  context('TestSuite: ArticlesService.getAllArticles() WITH DATA in "blogful_articles table" ',()=>{
+  //for good measure, wipe any data that might be leftover in blogful_articles table
+  before( ()=> iknex('blogful_articles').truncate() );
 
-  // before ANY tests in this context/describe run at all, we will seed the table with test data
-  before( ()=> {
+  //after all below tests hav run, destroy knex-practice-TEST database connection so it doesn't hang.  ...(This is because we have an open database connection and the Node process thinks the script will want to stay running whilst the connection is open!)
+  after( ()=> iknex.destroy() );
 
-    return iknexTest
-      .insert(articlesTest)
-      .into('blogful_articles')
+/*-------------------------TESTING BEGINS------------------------------------ */ 
 
-  });
+  context('TestSuite#1: getAllArticles() WITH DATA in "blogful_articles"', ()=> {
 
-    it('Test#1: resolves all article entries from "blogful_articles" table', ()=> {
-      return ArticlesService.getAllArticles(iknexTest)
+    //inject test data into table
+    beforeEach( ()=> iknex.insert(testArticles).into('blogful_articles') );
+    //wipe test data from table
+    afterEach( ()=> iknex('blogful_articles').truncate() );
+
+    //test1
+    it('spec#1: Should resolve all articles from "blogful_articles"', ()=> {
+      return ArticlesService.getAllArticles(iknex)
         .then(res=> {
-          console.log('res = ', res);
-          expect(res).to.eql(articlesTest);
+          expect(res).to.eql(testArticles);
         })
     })
 
   })
-/************** TestSuite#1  Over ***********/
 
+  context('TestSuite#1.5: getAllArticles() with NO data in "blogful_articles"', ()=> {
 
-/************** TestSuite#1  Start ***********/
-  context('TestSuite: ArticlesService.getAllArticles() with NO DATA in "blogful_articles" table', ()=>{
-
-    it('Test#1: ArticlesService.getAllArticles() resolves an EMPTY array', ()=> {
-      return ArticlesService.getAllArticles(iknexTest)
+    it('spec#1 should resolve empty array', ()=> {
+      return ArticlesService.getAllArticles(iknex)
         .then(res=> {
           expect(res).to.eql([])
-        });
+        })
     })
 
   })
-/************** TestSuite#1  Over ***********/
 
+  context('TestSuite#2: getbyId()', ()=> {
 
-//------------------------------------------------------------------Tests END
+    //inject test data into table
+    beforeEach( ()=> iknex.insert(testArticles).into('blogful_articles') );
+    //wipe test data from table
+    afterEach( ()=> iknex('blogful_articles').truncate() );
 
+    it('spec#1: should resolve article with specified id from "blogful_articles"', ()=> {
+      //choose an article to test from testArticles
+      const thisArticle = testArticles[1];
 
-})
+      return ArticlesService.getById(iknex, 2)
+        .then(res=> {
+          console.log(res);
+          console.log('VERSUS');
+          console.log(thisArticle);
+          expect(res).to.eql(thisArticle)
+        })
+
+    })
+
+  })
+
+  context('TestSuite#3: addArticle() with NO data in "blogful_articles"', ()=> {
+    //make an article to test adding it in.
+    const myArticle = 
+    {
+      title: "Megaman's New Game",
+      date_published: new Date('2020-01-01T00:00:00.000Z'),
+      content: "mega has a neew game coming in 2021 just in time for the tokyo olympics..."
+    }
+
+    //make expected version of article with id added
+    const expectedArticle = {
+      id: 1,
+      title: "Megaman's New Game",
+      date_published: new Date('2020-01-01T00:00:00.000Z'),
+      content: "mega has a neew game coming in 2021 just in time for the tokyo olympics..."
+    }
+
+    //wipe test data from table
+    afterEach( ()=> iknex('blogful_articles').truncate() );
+
+    it('spec#1: should insert given article and resolve article with added "id"', ()=> {
+      return ArticlesService.addArticle(iknex, myArticle)
+        .then(res=> {
+          expect(res).to.eql(expectedArticle)
+        })
+    })
+
+  })
+
+  context('TestSuite#4: removeById()', ()=> {
+    //establish what your table would look like with the article REMOVED.
+    const expectedTable = testArticles.filter(article=> article.id !== 2);
+    
+    //inject test data into table
+    beforeEach( ()=> iknex.insert(testArticles).into('blogful_articles') );
+    //wipe test data from table
+    afterEach( ()=> iknex('blogful_articles').truncate() );
+
+    it('spec#1: removes article by given "id" from "blogful_articles"', ()=> {
+      return ArticlesService.removeById(iknex, 2)
+        .then(()=> ArticlesService.getAllArticles(iknex))
+        .then(res=> {
+          console.log(res);
+          expect(res).to.eql(expectedTable);
+        })
+    })
+
+  })
+
+  context('TestSuite#5: updateArticle()', ()=> {
+
+    //make some changes you would like to overwrite with
+    const updates = 
+    {
+      title: '☃️Snowman Fishing in HotCocoa☕️',
+      content: '😋yuuuuummmmmmmmm, whooooooooooooo does not love Hot Cocoa'
+    }
+    
+    //make an updated version of the article to see if the method spits out the same thing
+    const updatedArticle =
+    {
+      id: 4,
+      title: '☃️Snowman Fishing in HotCocoa☕️',
+      date_published: new Date('2029-01-22T16:28:32.615Z'),
+      content: '😋yuuuuummmmmmmmm, whooooooooooooo does not love Hot Cocoa'
+    }
+
+    //inject test data into table
+    beforeEach( ()=> iknex.insert(testArticles).into('blogful_articles') );
+    //wipe test data from table
+    afterEach( ()=> iknex('blogful_articles').truncate() );
+
+    it('spec#1: updates an article from "blogful_articles"', ()=> {
+      return ArticlesService.updateArticle(iknex, 4, updates)
+        .then(()=> ArticlesService.getById(iknex,4))
+        .then(res=> {
+          expect(res).to.eql(updatedArticle)
+        })
+    })
+
+  })
+
+/*-------------------------TESTING ENDS------------------------------------ */ 
+
+});  //end of MASTER_TestSuite
+

@@ -1,4 +1,7 @@
---seed the test data into our blogful_articles table
+--seed test data into blogful_articles table
+
+
+
 
 
 INSERT INTO blogful_articles
